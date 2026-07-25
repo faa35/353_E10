@@ -40,8 +40,17 @@ def main(in_directory, out_directory):
 
     # TODO: calculate averages, sort by subreddit. Sort by average score and output that too.
 
-    #averages_by_subreddit.write.csv(out_directory + '-subreddit', mode='overwrite')
-    #averages_by_score.write.csv(out_directory + '-score', mode='overwrite')
+    averages = comments.groupBy('subreddit').agg(
+        functions.avg('score').alias('average_score'))
+    
+    averages = averages.cache()
+
+    averages_by_subreddit = averages.sort('subreddit')
+    
+    averages_by_score = averages.sort(functions.desc('average_score'), 'subreddit')
+
+    averages_by_subreddit.write.csv(out_directory + '-subreddit', mode='overwrite')
+    averages_by_score.write.csv(out_directory + '-score', mode='overwrite')
 
 
 if __name__=='__main__':

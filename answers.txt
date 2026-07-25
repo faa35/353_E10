@@ -1,0 +1,36 @@
+
+
+1. 
+timing:
+reddit-0                        :        real 0m30.943s
+reddit-2b, no schema, no caching:        real 0m56.621s
+reddit-2b, schema, no caching   :        real 0m40.525s
+reddit-2b, schema + caching     :        real 0m42.249s
+
+
+
+2. 
+most of the time is spent  in reading.
+i am decompressing and JSON-parsing the input file. So, not calculating the averages. 
+from 1.
+reddit-2b, no schema, no caching:        real 0m56.621s
+reddit-2b, schema, no caching   :        real 0m40.525s
+
+so providing the schema avoids this extra
+work.
+
+Calculating the averages is only a groupBy and average aggregation, so it
+appears to take less time than reading and parsing the JSON input. The cached
+version took 42.249 seconds, which was slightly slower overall than the
+schema-without-cache version in this run. This small difference can be caused
+by normal timing variation and the cost of placing the DataFrame into the
+cache. However, caching still prevents Spark from recalculating the averages
+from the original input when producing the second sorted output.
+
+3. I used .cache() exactly once: on the pagecounts DataFrame after it had
+   been filtered (English pages only, no Main_Page, no Special:*) and cut
+   down to the (hour, title, views) columns -- i.e. right before the
+   groupBy. That DataFrame is used twice: once to compute the maximum view
+   count per hour, and again when the per-hour maximums are joined back to
+   it to pick out the most-viewed page(s). Caching it means the input is
+   only read and filtered once instead of twice.
